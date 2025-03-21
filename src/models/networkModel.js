@@ -1,10 +1,8 @@
 const mongoose = require("mongoose");
 
-const TrainingDataSchema = new mongoose.Schema({
-  input: { type: String, required: true, unique: true },
-  output: { type: String, required: true }
+const textSchema = new mongoose.Schema({
+  question: { type: String, required: true, unique: true },
+  answer: { type: String, required: true }
 });
 
-const TrainingData = mongoose.model("TrainingData", TrainingDataSchema);
-
-module.exports = TrainingData;
+module.exports = mongoose.model("TextData", textSchema);

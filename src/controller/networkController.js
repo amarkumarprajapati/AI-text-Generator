@@ -1,63 +1,64 @@
-const { GenerativeNetwork } = require('../models/generativeNetwork/generativeNetwork');
-const NetworkModel = require('../models/networkModel');
+const TextData = require("../models/networkModel");
+const { fetchFromWeb, refineAnswer } = require("../service/chatService");
 
-let net = new GenerativeNetwork();
-net.initializeWithData(); // Pre-load training data
-
-const initializeModel = async () => {
-  await loadModel();
-};
-
-const loadModel = async () => {
+const getResponse = async (req, res) => {
   try {
-    const savedNet = await NetworkModel.findOne();
-    if (savedNet) {
-      net.knowledgeBase = savedNet.knowledgeBase || {};
-      console.log('Model loaded from DB');
-    } else {
-      console.log('No saved model found. Using pre-trained knowledge.');
+    const { question } = req.body;
+    if (!question) {
+      return res.status(400).json({ error: "Question is required" });
     }
+
+    let data = await TextData.findOne({ question: question.toLowerCase() });
+
+    if (data) {
+      return res.json({ answer: data.answer });
+    }
+
+    const webData = await fetchFromWeb(question);
+    const refinedAnswer = refineAnswer(webData);
+
+    const newTextData = new TextData({
+      question: question.toLowerCase(),
+      answer: refinedAnswer,
+    });
+    await newTextData.save();
+
+    return res.json({ answer: refinedAnswer });
   } catch (error) {
-    console.error('Error loading model:', error);
+    console.error("Error fetching response:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-const saveModel = async () => {
+const addTrainingData = async (req, res) => {
   try {
-    await NetworkModel.findOneAndUpdate(
-      {},
-      { knowledgeBase: net.knowledgeBase },
-      { upsert: true }
-    );
-    console.log('Model saved to DB');
+    const { question, answer } = req.body;
+    if (!question || !answer) {
+      return res
+        .status(400)
+        .json({ error: "Both question and answer are required" });
+    }
+
+    const existingData = await TextData.findOne({
+      question: question.toLowerCase(),
+    });
+    if (existingData) {
+      return res
+        .status(400)
+        .json({ error: "This question already exists in the database." });
+    }
+
+    const newTextData = new TextData({
+      question: question.toLowerCase(),
+      answer,
+    });
+    await newTextData.save();
+
+    res.json({ message: "Training data added successfully!" });
   } catch (error) {
-    console.error('Error saving model:', error);
+    console.error("Error adding training data:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-const processText = async (req, res) => {
-  try {
-    const { text } = req.body;
-
-    if (!text || typeof text !== 'string') {
-      return res.status(400).json({ error: 'Input must be a string in the "text" field' });
-    }
-
-    let responseText = net.forward(text);
-    
-    if (!responseText || responseText.length < 5) {
-      responseText = "I don't know yet, but I'll learn!";
-      net.train(text, responseText);
-    }
-
-    await saveModel();
-    res.status(200).json({ message: 'Processed successfully', text: responseText });
-  } catch (error) {
-    console.error('Processing error:', error);
-    res.status(500).json({ error: 'Processing failed' });
-  }
-};
-
-initializeModel();
-
-module.exports = { processText };
+module.exports = { getResponse, addTrainingData };

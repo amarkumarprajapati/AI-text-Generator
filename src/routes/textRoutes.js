@@ -1,7 +1,9 @@
 const express = require("express");
-const router = express.Router();
-const { processText } = require("../controller/networkController");
+const { getResponse, addTrainingData } = require("../controller/networkController");
 
-router.post("/process", processText);
+const router = express.Router();
+
+router.post("/ask", getResponse);  
+router.post("/train", addTrainingData);  
 
 module.exports = router;
