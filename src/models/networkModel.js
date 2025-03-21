@@ -1,11 +1,10 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const networkSchema = new mongoose.Schema({
-  weights1: [[Number]],
-  weights2: [[Number]],
-  bias1: [Number],
-  bias2: [Number],
-  generatedText: String,
+const TrainingDataSchema = new mongoose.Schema({
+  input: { type: String, required: true, unique: true },
+  output: { type: String, required: true }
 });
 
-module.exports = mongoose.model('Network', networkSchema);
+const TrainingData = mongoose.model("TrainingData", TrainingDataSchema);
+
+module.exports = TrainingData;

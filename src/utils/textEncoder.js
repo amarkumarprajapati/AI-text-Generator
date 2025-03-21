@@ -23,4 +23,4 @@ class TextEncoder {
   }
 }
 
-module.exports = TextEncoder;
+module.exports = TextEncoder; // Correct module export
