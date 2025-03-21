@@ -1,13 +1,11 @@
 const mongoose = require('mongoose');
 
 const networkSchema = new mongoose.Schema({
-  weights1: { type: [[Number]], required: true },
-  weights2: { type: [[Number]], required: true },
-  bias1: { type: [Number], required: true },
-  bias2: { type: [Number], required: true },
-  generatedText: { type: String, default: '' } 
+  weights1: [[Number]],
+  weights2: [[Number]],
+  bias1: [Number],
+  bias2: [Number],
+  generatedText: String,
 });
 
-const NetworkModel = mongoose.model('GenerativeNetwork', networkSchema);
-
-module.exports = NetworkModel;
+module.exports = mongoose.model('Network', networkSchema);

@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { trainNetwork, predict } = require('../controller/networkController');
+const { processText } = require('../controller/networkController');
 
-router.post('/train', trainNetwork);
-router.post('/predict', predict);
+router.post('/process', processText);
 
 module.exports = router;

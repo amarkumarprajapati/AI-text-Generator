@@ -1,52 +1,38 @@
-const characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .,!?"; 
-
-function numbersToText(numbers) {
-  return numbers.map(n => characters[Math.floor(n * characters.length)] || ' ').join('').trim();
-}
-
-function textToNumbers(text) {
-  return text.split('').map(char => {
-    const index = characters.indexOf(char);
-    return index === -1 ? 0 : index / characters.length;
-  });
-}
-
-function randomWeights(rows, cols) {
-  return Array(rows).fill().map(() => Array(cols).fill().map(() => Math.random() * 2 - 1));
-}
-
-function sigmoid(x) {
-  return 1 / (1 + Math.exp(-x));
-}
-
-function dotProduct(matrix, vector) {
-  return matrix.map(row => row.reduce((sum, val, i) => sum + val * vector[i], 0));
-}
+const TextEncoder = require('../../utils/textEncoder');
+const WeightsInitializer = require('../../utils/weightsInitializer');
+const NetworkCore = require('../../utils/networkCore');
 
 class GenerativeNetwork {
   constructor(inputSize = 20, hiddenSize = 10, outputSize = 20) {
-    this.inputSize = inputSize;    // Max input length
-    this.hiddenSize = hiddenSize;  // Smaller hidden layer
-    this.outputSize = outputSize;  // Max output length (e.g., 20 chars)
+    this.inputSize = inputSize;
+    this.hiddenSize = hiddenSize;
+    this.outputSize = outputSize;
 
-    this.weights1 = randomWeights(hiddenSize, inputSize);
-    this.weights2 = randomWeights(outputSize, hiddenSize);
-    this.bias1 = Array(hiddenSize).fill(0);
-    this.bias2 = Array(outputSize).fill(0);
+    this.textEncoder = new TextEncoder();
+    this.weightsInitializer = new WeightsInitializer();
+
+    // Initialize weights and biases
+    this.weights1 = this.weightsInitializer.randomWeights(hiddenSize, inputSize);
+    this.weights2 = this.weightsInitializer.randomWeights(outputSize, hiddenSize);
+    this.bias1 = this.weightsInitializer.zeroVector(hiddenSize);
+    this.bias2 = this.weightsInitializer.zeroVector(outputSize);
+
+    this.core = new NetworkCore(inputSize, hiddenSize, outputSize, this.weights1, this.weights2, this.bias1, this.bias2);
 
     this.initializeWithDummyData();
   }
 
   initializeWithDummyData() {
     const dummyData = [
-      "hi there",
-      "how are you",
-      "good day",
-      "nice to see"
+      { input: "hi there", output: "Hello there!" },
+      { input: "how are you", output: "I'm good, thanks!" },
+      { input: "good day", output: "Have a great day!" },
+      { input: "what is your name", output: "My name is Grok!" }
     ];
-    dummyData.forEach(text => {
-      const input = this.padOrTruncate(textToNumbers(text));
-      this.train(input, input, 0.2); // Pre-train with a reasonable learning rate
+    dummyData.forEach(({ input, output }) => {
+      const numericalInput = this.padOrTruncate(this.textEncoder.textToNumbers(input));
+      const numericalOutput = this.padOrTruncate(this.textEncoder.textToNumbers(output));
+      this.core.train(numericalInput, numericalOutput, 0.2);
     });
   }
 
@@ -56,35 +42,15 @@ class GenerativeNetwork {
   }
 
   forward(input) {
-    const hidden = dotProduct(this.weights1, input).map((v, i) => sigmoid(v + this.bias1[i]));
-    const output = dotProduct(this.weights2, hidden).map((v, i) => sigmoid(v + this.bias2[i]));
-    return numbersToText(output);
+    const numericalInput = this.padOrTruncate(this.textEncoder.textToNumbers(input));
+    return this.core.forward(numericalInput, this.textEncoder);
   }
 
-  train(input, target, learningRate = 0.1) {
-    const hidden = dotProduct(this.weights1, input).map((v, i) => sigmoid(v + this.bias1[i]));
-    const output = dotProduct(this.weights2, hidden).map((v, i) => sigmoid(v + this.bias2[i]));
-
-    const outputErrors = output.map((o, i) => target[i] - o);
-    const outputDelta = outputErrors.map((e, i) => e * output[i] * (1 - output[i]));
-
-    const hiddenErrors = dotProduct(this.weights2.map(row => row.slice()), outputDelta);
-    const hiddenDelta = hiddenErrors.map((e, i) => e * hidden[i] * (1 - hidden[i]));
-
-    for (let i = 0; i < this.outputSize; i++) {
-      for (let j = 0; j < this.hiddenSize; j++) {
-        this.weights2[i][j] += learningRate * outputDelta[i] * hidden[j];
-      }
-      this.bias2[i] += learningRate * outputDelta[i];
-    }
-
-    for (let i = 0; i < this.hiddenSize; i++) {
-      for (let j = 0; j < this.inputSize; j++) {
-        this.weights1[i][j] += learningRate * hiddenDelta[i] * input[j];
-      }
-      this.bias1[i] += learningRate * hiddenDelta[i];
-    }
+  train(input, target, learningRate = 0.05) {
+    const numericalInput = this.padOrTruncate(this.textEncoder.textToNumbers(input));
+    const numericalTarget = this.padOrTruncate(this.textEncoder.textToNumbers(target));
+    this.core.train(numericalInput, numericalTarget, learningRate);
   }
 }
 
-module.exports = { GenerativeNetwork, textToNumbers }; // Export both
+module.exports = { GenerativeNetwork, TextEncoder };
