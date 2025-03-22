@@ -3,7 +3,7 @@ const { getResponse, addTrainingData } = require("../controller/networkControlle
 
 const router = express.Router();
 
-router.post("/ask", getResponse);  
-router.post("/train", addTrainingData);  
+router.post("/ask", getResponse);
+router.post("/train", addTrainingData);
 
 module.exports = router;

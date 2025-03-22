@@ -1,22 +1,15 @@
+require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
+const cors = require("cors");
 const textRoutes = require("./src/routes/textRoutes");
 
 const app = express();
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 7000;
 
-mongoose.connect("mongodb+srv://amardatabase:amardatabase@cluster0.gjuunff.mongodb.net/AIChat")
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error("MongoDB connection error:", err));
-
+app.use(cors());
 app.use(express.json());
 app.use("/api/text", textRoutes);
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send({ error: "Internal Server Error" });
-});
-
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`🚀 Server is running on http://localhost:${port}`);
 });

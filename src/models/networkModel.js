@@ -1,8 +1,15 @@
-const mongoose = require("mongoose");
+const Datastore = require("nedb");
+const path = require("path");
 
-const textSchema = new mongoose.Schema({
-  question: { type: String, required: true, unique: true },
-  answer: { type: String, required: true }
+// Create a NeDB database file
+const db = new Datastore({
+  filename: path.join(__dirname, "../../data/trainingData.db"), 
+  autoload: true 
 });
 
-module.exports = mongoose.model("TextData", textSchema);
+// Ensure indexing for faster search
+db.ensureIndex({ fieldName: "question", unique: true }, (err) => {
+  if (err) console.error("Indexing Error:", err);
+});
+
+module.exports = db;
